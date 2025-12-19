@@ -65,10 +65,25 @@ const mockProjects = [
   },
 ];
 
-export const MainDashboardContent = () => {
+interface MainDashboardContentProps {
+  walletBalance?: number;
+  onBalanceChange?: (newBalance: number) => void;
+}
+
+export const MainDashboardContent = ({ 
+  walletBalance: externalBalance, 
+  onBalanceChange 
+}: MainDashboardContentProps) => {
   const [isReviewOpen, setIsReviewOpen] = useState(false);
-  const [walletBalance, setWalletBalance] = useState(145000);
+  const [internalBalance, setInternalBalance] = useState(145000);
   const [selectedApproval, setSelectedApproval] = useState(mockApprovals[0]);
+  
+  const walletBalance = externalBalance ?? internalBalance;
+  const setWalletBalance = (value: number | ((prev: number) => number)) => {
+    const newValue = typeof value === 'function' ? value(walletBalance) : value;
+    setInternalBalance(newValue);
+    onBalanceChange?.(newValue);
+  };
 
   const handleFundContract = () => {
     toast.success("Opening contract funding wizard...");
