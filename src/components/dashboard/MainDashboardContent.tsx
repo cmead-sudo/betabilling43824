@@ -1,8 +1,8 @@
-import { useState } from "react";
+import { useState, useCallback } from "react";
 import { TreasuryCard } from "./TreasuryCard";
 import { ProjectLedger } from "./ProjectLedger";
 import { toast } from "sonner";
-import { FileText, Clock, AlertCircle, X, CheckCircle } from "lucide-react";
+import { FileText, Clock, AlertCircle, CheckCircle } from "lucide-react";
 import {
   Dialog,
   DialogContent,
@@ -10,23 +10,36 @@ import {
   DialogTitle,
 } from "@/components/ui/dialog";
 
-const mockApprovals = [
+interface ApprovalItem {
+  id: string;
+  title: string;
+  subtitle: string;
+  type: "document" | "hours";
+  hoursValue?: string;
+  amount: number;
+  amountDisplay: string;
+  status: "pending" | "urgent";
+}
+
+const initialApprovals: ApprovalItem[] = [
   {
     id: "1",
     title: "Protocol Draft v1 - Phase I Oncology",
     subtitle: "Clinical documentation awaiting sponsor review",
-    type: "document" as const,
-    amount: "$6,000",
-    status: "pending" as const,
+    type: "document",
+    amount: 6000,
+    amountDisplay: "$6,000",
+    status: "pending",
   },
   {
     id: "2",
     title: "Regulatory Advisory Hours",
     subtitle: "Consultant time tracking submission",
-    type: "hours" as const,
+    type: "hours",
     hoursValue: "5 hrs",
-    amount: "$2,500",
-    status: "urgent" as const,
+    amount: 2500,
+    amountDisplay: "$2,500",
+    status: "urgent",
   },
 ];
 
@@ -66,52 +79,77 @@ const mockProjects = [
 ];
 
 interface MainDashboardContentProps {
-  walletBalance?: number;
-  onBalanceChange?: (newBalance: number) => void;
+  walletBalance: number;
+  onBalanceChange: (newBalance: number) => void;
+  onAddTransaction?: (transaction: { description: string; amount: number; type: "incoming" | "outgoing" }) => void;
 }
 
 export const MainDashboardContent = ({ 
-  walletBalance: externalBalance, 
-  onBalanceChange 
+  walletBalance, 
+  onBalanceChange,
+  onAddTransaction,
 }: MainDashboardContentProps) => {
   const [isReviewOpen, setIsReviewOpen] = useState(false);
-  const [internalBalance, setInternalBalance] = useState(145000);
-  const [selectedApproval, setSelectedApproval] = useState(mockApprovals[0]);
-  
-  const walletBalance = externalBalance ?? internalBalance;
-  const setWalletBalance = (value: number | ((prev: number) => number)) => {
-    const newValue = typeof value === 'function' ? value(walletBalance) : value;
-    setInternalBalance(newValue);
-    onBalanceChange?.(newValue);
-  };
+  const [selectedApproval, setSelectedApproval] = useState<ApprovalItem | null>(null);
+  const [approvals, setApprovals] = useState<ApprovalItem[]>(initialApprovals);
+  const [isProcessing, setIsProcessing] = useState(false);
 
-  const handleFundContract = () => {
+  const handleFundContract = useCallback(() => {
     toast.success("Opening contract funding wizard...");
-  };
+  }, []);
 
-  const handleReviewClick = (approval: typeof mockApprovals[0]) => {
+  const handleReviewClick = useCallback((approval: ApprovalItem) => {
     setSelectedApproval(approval);
     setIsReviewOpen(true);
-  };
+  }, []);
 
-  const handleApproveRelease = () => {
-    setWalletBalance((prev) => prev - 6000);
-    setIsReviewOpen(false);
-    toast.success("Payment Released!", {
-      description: `$6,000 sent to ${selectedApproval.title}`,
+  const handleCloseModal = useCallback(() => {
+    if (!isProcessing) {
+      setIsReviewOpen(false);
+      setSelectedApproval(null);
+    }
+  }, [isProcessing]);
+
+  const handleApproveRelease = useCallback(() => {
+    if (!selectedApproval || isProcessing) return;
+    
+    setIsProcessing(true);
+    
+    // Update balance
+    const newBalance = walletBalance - selectedApproval.amount;
+    onBalanceChange(newBalance);
+    
+    // Add transaction record
+    onAddTransaction?.({
+      description: `Payment released - ${selectedApproval.title}`,
+      amount: selectedApproval.amount,
+      type: "outgoing",
     });
-  };
+    
+    // Remove from approvals list
+    setApprovals(prev => prev.filter(a => a.id !== selectedApproval.id));
+    
+    // Show success toast
+    toast.success("Payment Released!", {
+      description: `${selectedApproval.amountDisplay} sent successfully`,
+    });
+    
+    // Close modal
+    setIsReviewOpen(false);
+    setSelectedApproval(null);
+    setIsProcessing(false);
+  }, [selectedApproval, isProcessing, walletBalance, onBalanceChange, onAddTransaction]);
 
-  const handleProjectClick = (id: string) => {
+  const handleProjectClick = useCallback((id: string) => {
     const project = mockProjects.find(p => p.id === id);
-    toast.info(`Opening ${project?.name}...`);
-  };
+    toast.info(`Opening ${project?.name} details...`);
+  }, []);
 
   const formatCurrency = (amount: number) => {
     return `$${amount.toLocaleString()}.00`;
   };
 
-  const availableAmount = walletBalance > 125000 ? walletBalance - 125000 : 0;
+  const availableAmount = walletBalance > 125000 ? walletBalance - 125000 : Math.max(0, walletBalance);
   const escrowedAmount = Math.min(walletBalance, 125000);
 
   return (
@@ -129,54 +167,64 @@ export const MainDashboardContent = ({
                     <AlertCircle className="w-5 h-5 text-destructive" />
                   </div>
                   <h3 className="text-lg font-bold text-foreground">Action Required</h3>
-                  <span className="px-2.5 py-1 rounded-full bg-destructive text-destructive-foreground text-xs font-bold">
-                    2
-                  </span>
+                  {approvals.length > 0 && (
+                    <span className="px-2.5 py-1 rounded-full bg-destructive text-destructive-foreground text-xs font-bold">
+                      {approvals.length}
+                    </span>
+                  )}
                 </div>
               </div>
               
               {/* Approval Items */}
               <div className="space-y-4">
-                {mockApprovals.map((item) => (
-                  <div 
-                    key={item.id}
-                    className="p-4 rounded-2xl bg-muted/30 border border-border/50 hover:border-border transition-colors"
-                  >
-                    <div className="flex items-start justify-between gap-4">
-                      <div className="flex items-start gap-3 flex-1">
-                        <div className={`w-12 h-12 rounded-xl flex items-center justify-center flex-shrink-0 ${
-                          item.type === "document" 
-                            ? "bg-primary/10" 
-                            : "bg-accent/10"
-                        }`}>
-                          {item.type === "document" ? (
-                            <FileText className="w-6 h-6 text-primary" />
-                          ) : (
-                            <Clock className="w-6 h-6 text-accent" />
-                          )}
+                {approvals.length === 0 ? (
+                  <div className="p-8 text-center">
+                    <CheckCircle className="w-12 h-12 text-status-active mx-auto mb-3" />
+                    <p className="font-semibold text-foreground">All caught up!</p>
+                    <p className="text-sm text-muted-foreground mt-1">No pending approvals</p>
+                  </div>
+                ) : (
+                  approvals.map((item) => (
+                    <div 
+                      key={item.id}
+                      className="p-4 rounded-2xl bg-muted/30 border border-border/50 hover:border-border transition-colors"
+                    >
+                      <div className="flex items-start justify-between gap-4">
+                        <div className="flex items-start gap-3 flex-1">
+                          <div className={`w-12 h-12 rounded-xl flex items-center justify-center flex-shrink-0 ${
+                            item.type === "document" 
+                              ? "bg-primary/10" 
+                              : "bg-accent/10"
+                          }`}>
+                            {item.type === "document" ? (
+                              <FileText className="w-6 h-6 text-primary" />
+                            ) : (
+                              <Clock className="w-6 h-6 text-accent" />
+                            )}
+                          </div>
+                          
+                          <div className="flex-1 min-w-0">
+                            <h4 className="font-semibold text-foreground truncate">{item.title}</h4>
+                            <p className="text-sm text-muted-foreground mt-0.5">{item.subtitle}</p>
+                            {item.type === "hours" && item.hoursValue && (
+                              <div className="flex items-center gap-1 mt-2">
+                                <Clock className="w-4 h-4 text-muted-foreground" />
+                                <span className="text-sm font-medium text-foreground">{item.hoursValue}</span>
+                              </div>
+                            )}
+                          </div>
                         </div>
                         
-                        <div className="flex-1 min-w-0">
-                          <h4 className="font-semibold text-foreground truncate">{item.title}</h4>
-                          <p className="text-sm text-muted-foreground mt-0.5">{item.subtitle}</p>
-                          {item.type === "hours" && item.hoursValue && (
-                            <div className="flex items-center gap-1 mt-2">
-                              <Clock className="w-4 h-4 text-muted-foreground" />
-                              <span className="text-sm font-medium text-foreground">{item.hoursValue}</span>
-                            </div>
-                          )}
-                        </div>
+                        <button
+                          onClick={() => handleReviewClick(item)}
+                          className="gradient-button flex-shrink-0"
+                        >
+                          Review Now
+                        </button>
                       </div>
-                      
-                      <button
-                        onClick={() => handleReviewClick(item)}
-                        className="gradient-button flex-shrink-0"
-                      >
-                        Review Now
-                      </button>
                     </div>
-                  </div>
-                ))}
+                  ))
+                )}
               </div>
             </div>
           </div>
@@ -201,48 +249,52 @@ export const MainDashboardContent = ({
         </div>
       </div>
 
-      {/* Review Modal */}
-      <Dialog open={isReviewOpen} onOpenChange={setIsReviewOpen}>
-        <DialogContent className="soft-card border-none max-w-lg">
+      {/* Review Modal - Stable with proper state management */}
+      <Dialog open={isReviewOpen} onOpenChange={handleCloseModal}>
+        <DialogContent className="soft-card border-none max-w-lg" onPointerDownOutside={(e) => isProcessing && e.preventDefault()}>
           <DialogHeader>
             <DialogTitle className="text-xl font-bold text-foreground">
               Review Document
             </DialogTitle>
           </DialogHeader>
           
-          <div className="space-y-6 pt-4">
-            {/* PDF Placeholder */}
-            <div className="aspect-[4/3] rounded-2xl bg-muted/50 border-2 border-dashed border-border flex flex-col items-center justify-center">
-              <FileText className="w-16 h-16 text-muted-foreground/50 mb-3" />
-              <p className="font-semibold text-foreground">{selectedApproval.title}</p>
-              <p className="text-sm text-muted-foreground mt-1">PDF Preview</p>
-            </div>
-            
-            {/* Amount to Release */}
-            <div className="p-4 rounded-2xl bg-muted/30 border border-border/50">
-              <div className="flex items-center justify-between">
-                <span className="text-muted-foreground">Amount to Release</span>
-                <span className="text-2xl font-bold text-primary">{selectedApproval.amount}</span>
+          {selectedApproval && (
+            <div className="space-y-6 pt-4">
+              {/* PDF Placeholder */}
+              <div className="aspect-[4/3] rounded-2xl bg-muted/50 border-2 border-dashed border-border flex flex-col items-center justify-center">
+                <FileText className="w-16 h-16 text-muted-foreground/50 mb-3" />
+                <p className="font-semibold text-foreground text-center px-4">{selectedApproval.title}</p>
+                <p className="text-sm text-muted-foreground mt-1">PDF Preview</p>
+              </div>
+              
+              {/* Amount to Release */}
+              <div className="p-4 rounded-2xl bg-muted/30 border border-border/50">
+                <div className="flex items-center justify-between">
+                  <span className="text-muted-foreground">Amount to Release</span>
+                  <span className="text-2xl font-bold text-primary">{selectedApproval.amountDisplay}</span>
+                </div>
+              </div>
+              
+              {/* Action Buttons */}
+              <div className="flex gap-3">
+                <button
+                  onClick={handleCloseModal}
+                  disabled={isProcessing}
+                  className="flex-1 px-6 py-3 rounded-xl border border-border bg-background text-foreground font-semibold hover:bg-muted transition-colors disabled:opacity-50"
+                >
+                  Cancel
+                </button>
+                <button
+                  onClick={handleApproveRelease}
+                  disabled={isProcessing}
+                  className="flex-1 flex items-center justify-center gap-2 px-6 py-3 rounded-xl bg-status-active text-white font-semibold hover:bg-status-active/90 transition-colors shadow-[0_4px_12px_hsl(var(--status-active)/0.3)] disabled:opacity-50"
+                >
+                  <CheckCircle className="w-5 h-5" />
+                  {isProcessing ? "Processing..." : "Approve & Release Funds"}
+                </button>
               </div>
             </div>
-            
-            {/* Action Buttons */}
-            <div className="flex gap-3">
-              <button
-                onClick={() => setIsReviewOpen(false)}
-                className="flex-1 px-6 py-3 rounded-xl border border-border bg-background text-foreground font-semibold hover:bg-muted transition-colors"
-              >
-                Cancel
-              </button>
-              <button
-                onClick={handleApproveRelease}
-                className="flex-1 flex items-center justify-center gap-2 px-6 py-3 rounded-xl bg-status-active text-white font-semibold hover:bg-status-active/90 transition-colors shadow-[0_4px_12px_hsl(var(--status-active)/0.3)]"
-              >
-                <CheckCircle className="w-5 h-5" />
-                Approve & Release Funds
-              </button>
-            </div>
-          </div>
+          )}
         </DialogContent>
       </Dialog>
     </div>
