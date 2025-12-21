@@ -249,9 +249,9 @@ export const MainDashboardContent = ({
         </div>
       </div>
 
-      {/* Review Modal - Stable with proper state management */}
-      <Dialog open={isReviewOpen} onOpenChange={handleCloseModal}>
-        <DialogContent className="soft-card border-none max-w-lg" onPointerDownOutside={(e) => isProcessing && e.preventDefault()}>
+      {/* Review Modal - Fixed positioning */}
+      <Dialog open={isReviewOpen} onOpenChange={handleCloseModal} modal>
+        <DialogContent className="soft-card border-none max-w-lg !fixed !top-1/2 !left-1/2 !-translate-x-1/2 !-translate-y-1/2">
           <DialogHeader>
             <DialogTitle className="text-xl font-bold text-foreground">
               Review Document
@@ -259,12 +259,12 @@ export const MainDashboardContent = ({
           </DialogHeader>
           
           {selectedApproval && (
-            <div className="space-y-6 pt-4">
-              {/* PDF Placeholder */}
-              <div className="aspect-[4/3] rounded-2xl bg-muted/50 border-2 border-dashed border-border flex flex-col items-center justify-center">
-                <FileText className="w-16 h-16 text-muted-foreground/50 mb-3" />
-                <p className="font-semibold text-foreground text-center px-4">{selectedApproval.title}</p>
-                <p className="text-sm text-muted-foreground mt-1">PDF Preview</p>
+            <div className="space-y-5">
+              {/* PDF Placeholder - smaller to fit viewport */}
+              <div className="aspect-[16/10] rounded-2xl bg-muted/50 border-2 border-dashed border-border flex flex-col items-center justify-center">
+                <FileText className="w-12 h-12 text-muted-foreground/50 mb-2" />
+                <p className="font-semibold text-foreground text-center px-4 text-sm">{selectedApproval.title}</p>
+                <p className="text-xs text-muted-foreground mt-1">PDF Preview</p>
               </div>
               
               {/* Amount to Release */}
@@ -278,6 +278,7 @@ export const MainDashboardContent = ({
               {/* Action Buttons */}
               <div className="flex gap-3">
                 <button
+                  type="button"
                   onClick={handleCloseModal}
                   disabled={isProcessing}
                   className="flex-1 px-6 py-3 rounded-xl border border-border bg-background text-foreground font-semibold hover:bg-muted transition-colors disabled:opacity-50"
@@ -285,12 +286,13 @@ export const MainDashboardContent = ({
                   Cancel
                 </button>
                 <button
+                  type="button"
                   onClick={handleApproveRelease}
                   disabled={isProcessing}
                   className="flex-1 flex items-center justify-center gap-2 px-6 py-3 rounded-xl bg-status-active text-white font-semibold hover:bg-status-active/90 transition-colors shadow-[0_4px_12px_hsl(var(--status-active)/0.3)] disabled:opacity-50"
                 >
                   <CheckCircle className="w-5 h-5" />
-                  {isProcessing ? "Processing..." : "Approve & Release Funds"}
+                  {isProcessing ? "Processing..." : "Approve & Release"}
                 </button>
               </div>
             </div>
