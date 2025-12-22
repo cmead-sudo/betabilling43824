@@ -129,7 +129,7 @@ export const TalentView = ({ onHireConsultant }: TalentViewProps) => {
         {consultants.map((consultant) => (
           <div
             key={consultant.id}
-            className="card-glass p-6 hover:shadow-hover transition-all duration-300 group"
+            className="soft-card p-6 hover:shadow-hover transition-all duration-300 group bg-white border border-gray-100"
           >
             <div className="flex gap-5">
               {/* Avatar */}

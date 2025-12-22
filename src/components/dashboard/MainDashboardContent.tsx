@@ -95,7 +95,10 @@ export const MainDashboardContent = ({
   const [isProcessing, setIsProcessing] = useState(false);
 
   const handleFundContract = useCallback(() => {
-    toast.success("Opening contract funding wizard...");
+    toast.info("Connecting to Wallet...", {
+      description: "Please approve the connection in your wallet",
+      duration: 3000,
+    });
   }, []);
 
   const handleReviewClick = useCallback((approval: ApprovalItem) => {
@@ -260,6 +263,21 @@ export const MainDashboardContent = ({
           
           {selectedApproval && (
             <div className="space-y-5">
+              {/* Secured by XRPL Badge */}
+              <div className="flex items-center justify-between p-3 rounded-xl bg-slate-900 text-white">
+                <div className="flex items-center gap-2">
+                  <div className="w-8 h-8 rounded-lg bg-gradient-to-br from-purple-500 to-pink-500 flex items-center justify-center">
+                    <svg viewBox="0 0 24 24" className="w-5 h-5" fill="currentColor">
+                      <path d="M12 2L2 7l10 5 10-5-10-5zM2 17l10 5 10-5M2 12l10 5 10-5" strokeWidth="2" stroke="currentColor" fill="none" strokeLinecap="round" strokeLinejoin="round"/>
+                    </svg>
+                  </div>
+                  <span className="text-sm font-semibold">Secured by XRPL</span>
+                </div>
+                <div className="flex items-center gap-2 px-3 py-1.5 rounded-lg bg-white/10">
+                  <span className="text-xs font-mono opacity-80">a7f3c8e...9c2</span>
+                </div>
+              </div>
+
               {/* PDF Placeholder - smaller to fit viewport */}
               <div className="aspect-[16/10] rounded-2xl bg-muted/50 border-2 border-dashed border-border flex flex-col items-center justify-center">
                 <FileText className="w-12 h-12 text-muted-foreground/50 mb-2" />
