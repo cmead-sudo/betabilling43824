@@ -1,5 +1,5 @@
-import { useState } from "react";
-import { Plus, User, CheckCircle, Target, X, Calendar } from "lucide-react";
+import { useState, useRef } from "react";
+import { Plus, User, CheckCircle, Target, X, Calendar, Upload, Shield, Loader2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { toast } from "sonner";
 import {
@@ -8,15 +8,29 @@ import {
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog";
+import { ProjectHealthChart } from "./ProjectHealthChart";
+import { DataPassportCard } from "./DataPassportCard";
+
+interface Milestone {
+  id: string;
+  name: string;
+  amount: number;
+  status: "pending" | "in-progress" | "completed";
+  deliverable?: string;
+}
 
 interface Project {
   id: string;
   name: string;
   subtitle: string;
   budget?: string;
+  budgetAmount?: number;
   consultant?: string;
   progress?: number;
   result?: string;
+  milestones?: Milestone[];
+  budgetConsumed?: number;
+  dataVerified?: number;
 }
 
 interface Column {
@@ -28,9 +42,21 @@ interface Column {
 
 interface ProjectsViewProps {
   onNavigateToTalent?: () => void;
+  walletBalance?: number;
+  onBalanceChange?: (newBalance: number) => void;
+  onAddTransaction?: (transaction: { description: string; amount: number; type: "incoming" | "outgoing" }) => void;
 }
 
-export const ProjectsView = ({ onNavigateToTalent }: ProjectsViewProps) => {
+export const ProjectsView = ({ 
+  onNavigateToTalent,
+  walletBalance = 0,
+  onBalanceChange,
+  onAddTransaction,
+}: ProjectsViewProps) => {
+  const fileInputRef = useRef<HTMLInputElement>(null);
+  const [isVerifying, setIsVerifying] = useState(false);
+  const [verifyingMilestoneId, setVerifyingMilestoneId] = useState<string | null>(null);
+
   const [columns, setColumns] = useState<Column[]>([
     {
       id: "planning",
@@ -42,6 +68,7 @@ export const ProjectsView = ({ onNavigateToTalent }: ProjectsViewProps) => {
           name: "Phase II Cardiology",
           subtitle: "Site Selection",
           budget: "$200k",
+          budgetAmount: 200000,
         },
       ],
     },
@@ -56,6 +83,30 @@ export const ProjectsView = ({ onNavigateToTalent }: ProjectsViewProps) => {
           subtitle: "Protocol Writing",
           consultant: "Alice B.",
           progress: 66,
+          budgetAmount: 150000,
+          budgetConsumed: 66,
+          dataVerified: 55,
+          milestones: [
+            { id: "m1", name: "Protocol Draft", amount: 25000, status: "completed" },
+            { id: "m2", name: "Ethics Submission", amount: 35000, status: "completed" },
+            { id: "m3", name: "Site Activation", amount: 40000, status: "in-progress" },
+            { id: "m4", name: "Final Report", amount: 50000, status: "pending" },
+          ],
+        },
+        {
+          id: "4",
+          name: "PK Analysis",
+          subtitle: "Pharmacokinetics Study",
+          consultant: "DataStats Inc.",
+          progress: 35,
+          budgetAmount: 80000,
+          budgetConsumed: 45,
+          dataVerified: 30,
+          milestones: [
+            { id: "m1", name: "Data Collection", amount: 20000, status: "completed" },
+            { id: "m2", name: "Statistical Model", amount: 30000, status: "in-progress" },
+            { id: "m3", name: "Final Analysis", amount: 30000, status: "pending" },
+          ],
         },
       ],
     },
@@ -69,6 +120,8 @@ export const ProjectsView = ({ onNavigateToTalent }: ProjectsViewProps) => {
           name: "Biomarker Feasibility",
           subtitle: "Phase I Analysis",
           result: "Success",
+          budgetConsumed: 100,
+          dataVerified: 100,
         },
       ],
     },
@@ -99,11 +152,13 @@ export const ProjectsView = ({ onNavigateToTalent }: ProjectsViewProps) => {
       return;
     }
 
+    const budgetNum = parseInt(newProjectBudget) * 1000 || 0;
     const newProject: Project = {
       id: `proj-${Date.now()}`,
       name: newProjectName,
       subtitle: newProjectSubtitle || "New Project",
       budget: newProjectBudget ? `$${newProjectBudget}k` : undefined,
+      budgetAmount: budgetNum,
     };
 
     setColumns(prev => prev.map(col => 
@@ -145,8 +200,116 @@ export const ProjectsView = ({ onNavigateToTalent }: ProjectsViewProps) => {
     toast.info("Select a consultant from the Talent view");
   };
 
+  const handleUploadDeliverable = (milestoneId: string) => {
+    setVerifyingMilestoneId(milestoneId);
+    fileInputRef.current?.click();
+  };
+
+  const handleFileSelected = (event: React.ChangeEvent<HTMLInputElement>) => {
+    const file = event.target.files?.[0];
+    if (!file || !verifyingMilestoneId || !selectedProject) return;
+
+    // Start AI verification animation
+    setIsVerifying(true);
+    
+    toast.info("Uploading deliverable...", { duration: 1000 });
+
+    // 2-second "AI Verifying" animation
+    setTimeout(() => {
+      toast.loading("AI Verifying deliverable...", { 
+        id: "ai-verify",
+        description: "Analyzing document structure and data integrity",
+      });
+    }, 500);
+
+    setTimeout(() => {
+      toast.dismiss("ai-verify");
+      
+      // Find the milestone and its amount
+      const milestone = selectedProject.milestones?.find(m => m.id === verifyingMilestoneId);
+      const releaseAmount = milestone?.amount || 0;
+
+      // Update milestone status to completed
+      setColumns(prev => prev.map(col => ({
+        ...col,
+        projects: col.projects.map(project => {
+          if (project.id === selectedProject.id && project.milestones) {
+            const updatedMilestones = project.milestones.map(m =>
+              m.id === verifyingMilestoneId 
+                ? { ...m, status: "completed" as const, deliverable: file.name }
+                : m
+            );
+            
+            // Calculate new progress
+            const completedCount = updatedMilestones.filter(m => m.status === "completed").length;
+            const newProgress = Math.round((completedCount / updatedMilestones.length) * 100);
+            
+            // Update data verified percentage
+            const newDataVerified = Math.min((project.dataVerified || 0) + 15, 100);
+            
+            return {
+              ...project,
+              milestones: updatedMilestones,
+              progress: newProgress,
+              dataVerified: newDataVerified,
+            };
+          }
+          return project;
+        })
+      })));
+
+      // Deduct from wallet balance
+      if (onBalanceChange && releaseAmount > 0) {
+        onBalanceChange(walletBalance - releaseAmount);
+      }
+
+      // Add transaction record
+      onAddTransaction?.({
+        description: `Milestone Complete - ${milestone?.name}`,
+        amount: releaseAmount,
+        type: "outgoing",
+      });
+
+      // Update selected project state
+      setSelectedProject(prev => {
+        if (!prev?.milestones) return prev;
+        const updatedMilestones = prev.milestones.map(m =>
+          m.id === verifyingMilestoneId 
+            ? { ...m, status: "completed" as const, deliverable: file.name }
+            : m
+        );
+        const completedCount = updatedMilestones.filter(m => m.status === "completed").length;
+        return {
+          ...prev,
+          milestones: updatedMilestones,
+          progress: Math.round((completedCount / updatedMilestones.length) * 100),
+          dataVerified: Math.min((prev.dataVerified || 0) + 15, 100),
+        };
+      });
+
+      toast.success("Funds Released!", {
+        description: `$${releaseAmount.toLocaleString()} released for verified deliverable`,
+      });
+
+      setIsVerifying(false);
+      setVerifyingMilestoneId(null);
+    }, 2500);
+
+    // Reset file input
+    event.target.value = "";
+  };
+
   return (
     <div className="p-8">
+      {/* Hidden file input for upload */}
+      <input
+        type="file"
+        ref={fileInputRef}
+        onChange={handleFileSelected}
+        className="hidden"
+        accept=".pdf,.doc,.docx,.xlsx,.csv"
+      />
+
       {/* Header */}
       <div className="flex items-center justify-between mb-8">
         <div>
@@ -302,36 +465,132 @@ export const ProjectsView = ({ onNavigateToTalent }: ProjectsViewProps) => {
         </DialogContent>
       </Dialog>
 
-      {/* Project Details Modal */}
-      <Dialog open={!!selectedProject} onOpenChange={() => setSelectedProject(null)}>
-        <DialogContent className="soft-card border-none max-w-md">
+      {/* Project Details Modal - Enhanced with Milestones */}
+      <Dialog open={!!selectedProject} onOpenChange={() => !isVerifying && setSelectedProject(null)}>
+        <DialogContent className="soft-card border-none max-w-2xl max-h-[90vh] overflow-y-auto">
           <DialogHeader>
             <DialogTitle className="text-xl font-bold text-foreground">
               {selectedProject?.name}
             </DialogTitle>
+            {selectedProject?.subtitle && (
+              <p className="text-sm text-muted-foreground">{selectedProject.subtitle}</p>
+            )}
           </DialogHeader>
           
           {selectedProject && (
-            <div className="space-y-4 pt-4">
-              <div className="p-4 rounded-2xl bg-muted/30 border border-border/50">
-                <p className="text-sm text-muted-foreground">Phase</p>
-                <p className="font-semibold text-foreground">{selectedProject.subtitle}</p>
-              </div>
-              
-              {selectedProject.budget && (
+            <div className="space-y-5 pt-2">
+              {/* Project Info Row */}
+              <div className="grid grid-cols-2 gap-4">
+                <div className="p-4 rounded-2xl bg-muted/30 border border-border/50">
+                  <p className="text-sm text-muted-foreground">Consultant</p>
+                  <p className="font-semibold text-foreground">{selectedProject.consultant || "Unassigned"}</p>
+                </div>
                 <div className="p-4 rounded-2xl bg-muted/30 border border-border/50">
                   <p className="text-sm text-muted-foreground">Budget</p>
-                  <p className="font-semibold text-foreground">{selectedProject.budget}</p>
+                  <p className="font-semibold text-foreground">
+                    {selectedProject.budgetAmount 
+                      ? `$${selectedProject.budgetAmount.toLocaleString()}`
+                      : selectedProject.budget || "TBD"
+                    }
+                  </p>
+                </div>
+              </div>
+
+              {/* Project Health Chart */}
+              {selectedProject.budgetConsumed !== undefined && selectedProject.dataVerified !== undefined && (
+                <ProjectHealthChart
+                  budgetConsumed={selectedProject.budgetConsumed}
+                  dataVerified={selectedProject.dataVerified}
+                  projectName={selectedProject.name}
+                />
+              )}
+
+              {/* Milestones Section */}
+              {selectedProject.milestones && selectedProject.milestones.length > 0 && (
+                <div className="space-y-4">
+                  <h3 className="font-semibold text-foreground flex items-center gap-2">
+                    <Target className="w-4 h-4 text-primary" />
+                    Milestones
+                  </h3>
+                  
+                  <div className="space-y-3">
+                    {selectedProject.milestones.map((milestone) => (
+                      <div 
+                        key={milestone.id}
+                        className={`p-4 rounded-2xl border transition-all ${
+                          milestone.status === "completed"
+                            ? "bg-emerald-50 border-emerald-200"
+                            : milestone.status === "in-progress"
+                            ? "bg-amber-50 border-amber-200"
+                            : "bg-muted/30 border-border/50"
+                        }`}
+                      >
+                        <div className="flex items-center justify-between gap-4">
+                          <div className="flex items-center gap-3 flex-1 min-w-0">
+                            {milestone.status === "completed" ? (
+                              <div className="w-8 h-8 rounded-full bg-emerald-100 flex items-center justify-center flex-shrink-0">
+                                <CheckCircle className="w-4 h-4 text-emerald-600" />
+                              </div>
+                            ) : milestone.status === "in-progress" ? (
+                              <div className="w-8 h-8 rounded-full bg-amber-100 flex items-center justify-center flex-shrink-0">
+                                <Loader2 className="w-4 h-4 text-amber-600 animate-spin" />
+                              </div>
+                            ) : (
+                              <div className="w-8 h-8 rounded-full bg-muted flex items-center justify-center flex-shrink-0">
+                                <Calendar className="w-4 h-4 text-muted-foreground" />
+                              </div>
+                            )}
+                            
+                            <div className="flex-1 min-w-0">
+                              <p className="font-medium text-foreground truncate">{milestone.name}</p>
+                              <p className="text-sm text-muted-foreground">
+                                ${milestone.amount.toLocaleString()}
+                              </p>
+                              {milestone.deliverable && (
+                                <DataPassportCard 
+                                  fileName={milestone.deliverable}
+                                  fileType="Verified Deliverable"
+                                  className="mt-2"
+                                />
+                              )}
+                            </div>
+                          </div>
+                          
+                          {milestone.status === "in-progress" && (
+                            <Button
+                              size="sm"
+                              onClick={() => handleUploadDeliverable(milestone.id)}
+                              disabled={isVerifying}
+                              className="btn-gradient gap-1.5 flex-shrink-0"
+                            >
+                              {isVerifying && verifyingMilestoneId === milestone.id ? (
+                                <>
+                                  <Loader2 className="w-4 h-4 animate-spin" />
+                                  Verifying...
+                                </>
+                              ) : (
+                                <>
+                                  <Upload className="w-4 h-4" />
+                                  Upload Deliverable
+                                </>
+                              )}
+                            </Button>
+                          )}
+                          
+                          {milestone.status === "completed" && (
+                            <div className="flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-emerald-100 text-emerald-700 text-xs font-semibold flex-shrink-0">
+                              <Shield className="w-3 h-3" />
+                              Verified
+                            </div>
+                          )}
+                        </div>
+                      </div>
+                    ))}
+                  </div>
                 </div>
               )}
               
-              {selectedProject.consultant && (
-                <div className="p-4 rounded-2xl bg-muted/30 border border-border/50">
-                  <p className="text-sm text-muted-foreground">Assigned Consultant</p>
-                  <p className="font-semibold text-foreground">{selectedProject.consultant}</p>
-                </div>
-              )}
-              
+              {/* Action Buttons */}
               <div className="flex gap-3 pt-2">
                 {!selectedProject.consultant && (
                   <Button

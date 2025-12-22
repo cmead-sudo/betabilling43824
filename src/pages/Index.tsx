@@ -85,7 +85,14 @@ const Index = () => {
   const renderContent = () => {
     switch (activeNav) {
       case "Projects":
-        return <ProjectsView onNavigateToTalent={() => setActiveNav("Talent")} />;
+        return (
+          <ProjectsView 
+            onNavigateToTalent={() => setActiveNav("Talent")}
+            walletBalance={walletBalance}
+            onBalanceChange={handleBalanceChange}
+            onAddTransaction={handleAddTransaction}
+          />
+        );
       case "Talent":
         return <TalentView onHireConsultant={(name) => {
           handleAddTransaction({ description: `SOW initiated with ${name}`, amount: 0, type: "outgoing" });
