@@ -151,7 +151,7 @@ export const WalletView = ({
 
           {/* Quick Stats */}
           <div className="grid grid-cols-2 gap-4">
-            <div className="card-glass p-4">
+            <div className="soft-card p-4 bg-white border border-gray-100 shadow-sm">
               <div className="flex items-center gap-2 mb-2">
                 <div className="w-8 h-8 rounded-lg bg-emerald-100 flex items-center justify-center">
                   <ArrowDownLeft className="w-4 h-4 text-emerald-600" />
@@ -161,7 +161,7 @@ export const WalletView = ({
               <p className="text-xl font-bold text-foreground">${availableBalance.toLocaleString()}</p>
               <p className="text-xs text-emerald-600 mt-1">Ready to deploy</p>
             </div>
-            <div className="card-glass p-4">
+            <div className="soft-card p-4 bg-white border border-gray-100 shadow-sm">
               <div className="flex items-center gap-2 mb-2">
                 <div className="w-8 h-8 rounded-lg bg-amber-100 flex items-center justify-center">
                   <Shield className="w-4 h-4 text-amber-600" />
@@ -195,7 +195,7 @@ export const WalletView = ({
 
         {/* Right - Transaction History */}
         <div className="lg:col-span-3">
-          <div className="card-glass p-6">
+          <div className="soft-card p-6 bg-white border border-gray-100 shadow-sm">
             <div className="flex items-center justify-between mb-6">
               <h2 className="font-semibold text-foreground">Transaction History</h2>
               <button className="text-sm text-primary font-medium hover:underline flex items-center gap-1">
