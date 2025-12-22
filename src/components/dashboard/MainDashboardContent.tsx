@@ -1,6 +1,7 @@
 import { useState, useCallback } from "react";
 import { TreasuryCard } from "./TreasuryCard";
 import { ProjectLedger } from "./ProjectLedger";
+import { DataPassportCard } from "./DataPassportCard";
 import { toast } from "sonner";
 import { FileText, Clock, AlertCircle, CheckCircle } from "lucide-react";
 import {
@@ -249,6 +250,43 @@ export const MainDashboardContent = ({
             projects={mockProjects}
             onProjectClick={handleProjectClick}
           />
+        </div>
+
+        {/* Recent Documents with Data Passport */}
+        <div className="animate-fade-in" style={{ animationDelay: "0.4s" }}>
+          <div className="soft-card p-6">
+            <div className="flex items-center gap-3 mb-5">
+              <div className="w-10 h-10 rounded-xl bg-primary/10 flex items-center justify-center">
+                <FileText className="w-5 h-5 text-primary" />
+              </div>
+              <h3 className="text-lg font-bold text-foreground">Recent Documents</h3>
+              <span className="text-xs text-muted-foreground ml-auto">Click shield to verify chain of custody</span>
+            </div>
+            
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+              <DataPassportCard 
+                fileName="Protocol_Draft_v1.pdf"
+                fileType="Clinical Protocol"
+                createdDate="Dec 10, 2024"
+                reviewedDate="Dec 15, 2024"
+                lockedDate="Dec 18, 2024"
+              />
+              <DataPassportCard 
+                fileName="Ethics_Approval.pdf"
+                fileType="Regulatory Document"
+                createdDate="Nov 28, 2024"
+                reviewedDate="Dec 5, 2024"
+                lockedDate="Dec 8, 2024"
+              />
+              <DataPassportCard 
+                fileName="Patient_Data_Export.xlsx"
+                fileType="Clinical Data"
+                createdDate="Dec 12, 2024"
+                reviewedDate="Dec 16, 2024"
+                lockedDate="Dec 19, 2024"
+              />
+            </div>
+          </div>
         </div>
       </div>
 
