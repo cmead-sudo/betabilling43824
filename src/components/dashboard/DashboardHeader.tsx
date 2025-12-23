@@ -1,4 +1,5 @@
 import { Settings, Bell, User } from "lucide-react";
+import pharmaloomLogo from "@/assets/pharmaloom-logo.png";
 
 const navItems = ["Dashboard", "Projects", "Talent", "Wallet"];
 
@@ -12,12 +13,8 @@ export const DashboardHeader = ({ activeNav = "Dashboard", onNavChange }: Dashbo
     <header className="flex items-center justify-between px-8 py-4">
       {/* Logo */}
       <div className="flex items-center gap-3">
-        <div className="w-10 h-10 rounded-xl bg-primary flex items-center justify-center">
-          <svg viewBox="0 0 24 24" className="w-6 h-6 text-primary-foreground" fill="currentColor">
-            <path d="M12 2L2 7l10 5 10-5-10-5zM2 17l10 5 10-5M2 12l10 5 10-5" strokeWidth="2" stroke="currentColor" fill="none" strokeLinecap="round" strokeLinejoin="round"/>
-          </svg>
-        </div>
-        <span className="text-xl font-bold text-primary tracking-tight">PHARMA LOOM</span>
+        <img src={pharmaloomLogo} alt="Pharmaloom" className="h-10 w-auto" />
+        <span className="text-xl font-bold text-primary tracking-tight">Pharmaloom</span>
       </div>
 
       {/* Pill Navigation */}
