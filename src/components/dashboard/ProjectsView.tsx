@@ -405,7 +405,7 @@ export const ProjectsView = ({
 
       {/* New Project Modal */}
       <Dialog open={isNewProjectOpen} onOpenChange={setIsNewProjectOpen}>
-        <DialogContent className="soft-card border-none max-w-md">
+        <DialogContent className="soft-card border-none max-w-md !fixed !top-1/2 !left-1/2 !-translate-x-1/2 !-translate-y-1/2">
           <DialogHeader>
             <DialogTitle className="text-xl font-bold text-foreground">
               Create New Project
@@ -467,7 +467,7 @@ export const ProjectsView = ({
 
       {/* Project Details Modal - Enhanced with Milestones */}
       <Dialog open={!!selectedProject} onOpenChange={() => !isVerifying && setSelectedProject(null)}>
-        <DialogContent className="soft-card border-none max-w-2xl max-h-[90vh] overflow-y-auto">
+        <DialogContent className="soft-card border-none max-w-2xl max-h-[90vh] overflow-y-auto !fixed !top-1/2 !left-1/2 !-translate-x-1/2 !-translate-y-1/2">
           <DialogHeader>
             <DialogTitle className="text-xl font-bold text-foreground">
               {selectedProject?.name}
