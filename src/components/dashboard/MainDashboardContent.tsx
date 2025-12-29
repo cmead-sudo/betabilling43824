@@ -2,6 +2,7 @@ import { useState, useCallback } from "react";
 import { TreasuryCard } from "./TreasuryCard";
 import { ProjectLedger } from "./ProjectLedger";
 import { DataPassportCard } from "./DataPassportCard";
+import { ReAuthenticationDialog } from "@/components/compliance/ReAuthenticationDialog";
 import { toast } from "sonner";
 import { FileText, Clock, AlertCircle, CheckCircle } from "lucide-react";
 import {
@@ -94,6 +95,7 @@ export const MainDashboardContent = ({
   const [selectedApproval, setSelectedApproval] = useState<ApprovalItem | null>(null);
   const [approvals, setApprovals] = useState<ApprovalItem[]>(initialApprovals);
   const [isProcessing, setIsProcessing] = useState(false);
+  const [isReAuthOpen, setIsReAuthOpen] = useState(false);
 
   const handleFundContract = useCallback(() => {
     toast.info("Connecting to Wallet...", {
@@ -114,18 +116,26 @@ export const MainDashboardContent = ({
     }
   }, [isProcessing]);
 
-  const handleApproveRelease = useCallback(() => {
+  // Initiate re-authentication flow before approval
+  const handleInitiateApproval = useCallback(() => {
+    if (!selectedApproval || isProcessing) return;
+    setIsReAuthOpen(true);
+  }, [selectedApproval, isProcessing]);
+
+  // Execute approval after successful re-authentication (with electronic signature)
+  const handleApproveRelease = useCallback((electronicSignature: string) => {
     if (!selectedApproval || isProcessing) return;
     
     setIsProcessing(true);
+    setIsReAuthOpen(false);
     
     // Update balance
     const newBalance = walletBalance - selectedApproval.amount;
     onBalanceChange(newBalance);
     
-    // Add transaction record
+    // Add transaction record with electronic signature reference
     onAddTransaction?.({
-      description: `Payment released - ${selectedApproval.title}`,
+      description: `Payment released - ${selectedApproval.title} (Signed: ${electronicSignature.slice(0, 8)}...)`,
       amount: selectedApproval.amount,
       type: "outgoing",
     });
@@ -135,7 +145,7 @@ export const MainDashboardContent = ({
     
     // Show success toast
     toast.success("Payment Released!", {
-      description: `${selectedApproval.amountDisplay} sent successfully`,
+      description: `${selectedApproval.amountDisplay} sent with electronic signature`,
     });
     
     // Close modal
@@ -343,18 +353,30 @@ export const MainDashboardContent = ({
                 </button>
                 <button
                   type="button"
-                  onClick={handleApproveRelease}
+                  onClick={handleInitiateApproval}
                   disabled={isProcessing}
                   className="flex-1 flex items-center justify-center gap-2 px-6 py-3 rounded-xl bg-status-active text-white font-semibold hover:bg-status-active/90 transition-colors shadow-[0_4px_12px_hsl(var(--status-active)/0.3)] disabled:opacity-50"
                 >
                   <CheckCircle className="w-5 h-5" />
-                  {isProcessing ? "Processing..." : "Approve & Release"}
+                  {isProcessing ? "Processing..." : "Sign & Release"}
                 </button>
               </div>
             </div>
           )}
         </DialogContent>
       </Dialog>
+
+      {/* Re-Authentication Dialog for 21 CFR Part 11 Compliance */}
+      {selectedApproval && (
+        <ReAuthenticationDialog
+          open={isReAuthOpen}
+          onOpenChange={setIsReAuthOpen}
+          onConfirm={handleApproveRelease}
+          actionTitle={`Approve & Release: ${selectedApproval.title}`}
+          actionDescription="This will release escrowed funds to the recipient"
+          amount={selectedApproval.amountDisplay}
+        />
+      )}
     </div>
   );
 };
