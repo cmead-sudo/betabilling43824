@@ -4,6 +4,8 @@ import { MainDashboardContent } from "@/components/dashboard/MainDashboardConten
 import { ProjectsView } from "@/components/dashboard/ProjectsView";
 import { TalentView } from "@/components/dashboard/TalentView";
 import { WalletView } from "@/components/dashboard/WalletView";
+import { exportToPDF, exportToCSV, Project, Consultant } from "@/lib/exportUtils";
+import { useToast } from "@/hooks/use-toast";
 
 export interface Transaction {
   id: string;
@@ -57,10 +59,71 @@ const initialTransactions: Transaction[] = [
   },
 ];
 
+// Sample data for exports
+const sampleProjects: Project[] = [
+  {
+    id: "1",
+    name: "PK Analysis",
+    status: "In Progress",
+    progress: 65,
+    consultant: "Alice B.",
+    budget: "$25,000",
+    budgetAmount: 25000,
+    milestones: [
+      { id: "m1", name: "Protocol Review", amount: 5000, status: "Completed" },
+      { id: "m2", name: "Data Analysis", amount: 10000, status: "In Progress" },
+      { id: "m3", name: "Final Report", amount: 10000, status: "Pending" },
+    ],
+    budgetConsumed: 45,
+    dataVerified: 65,
+  },
+  {
+    id: "2",
+    name: "FIH Oncology Protocol",
+    status: "Review",
+    progress: 85,
+    consultant: "Dr. Marcus L.",
+    budget: "$45,000",
+    budgetAmount: 45000,
+    milestones: [
+      { id: "m4", name: "Initial Draft", amount: 15000, status: "Completed" },
+      { id: "m5", name: "Regulatory Review", amount: 15000, status: "Completed" },
+      { id: "m6", name: "Final Approval", amount: 15000, status: "In Progress" },
+    ],
+    budgetConsumed: 70,
+    dataVerified: 85,
+  },
+  {
+    id: "3",
+    name: "Biomarker Strategy",
+    status: "Planning",
+    progress: 20,
+    consultant: "Sarah K.",
+    budget: "$30,000",
+    budgetAmount: 30000,
+    milestones: [
+      { id: "m7", name: "Literature Review", amount: 10000, status: "In Progress" },
+      { id: "m8", name: "Strategy Development", amount: 10000, status: "Pending" },
+      { id: "m9", name: "Implementation Plan", amount: 10000, status: "Pending" },
+    ],
+    budgetConsumed: 15,
+    dataVerified: 20,
+  },
+];
+
+const sampleConsultants: Consultant[] = [
+  { id: "1", name: "Alice B.", specialty: "Pharmacokinetics", rate: "$150/hr", reliability: 98, status: "Active" },
+  { id: "2", name: "Dr. Marcus L.", specialty: "Oncology Protocols", rate: "$200/hr", reliability: 95, status: "Active" },
+  { id: "3", name: "Sarah K.", specialty: "Biomarker Strategy", rate: "$175/hr", reliability: 92, status: "Active" },
+  { id: "4", name: "James R.", specialty: "Clinical Operations", rate: "$160/hr", reliability: 88, status: "Available" },
+  { id: "5", name: "Dr. Emily W.", specialty: "Regulatory Affairs", rate: "$190/hr", reliability: 96, status: "Active" },
+];
+
 const Index = () => {
   const [activeNav, setActiveNav] = useState("Dashboard");
   const [walletBalance, setWalletBalance] = useState(145000);
   const [transactions, setTransactions] = useState<Transaction[]>(initialTransactions);
+  const { toast } = useToast();
 
   const handleBalanceChange = useCallback((newBalance: number) => {
     setWalletBalance(newBalance);
@@ -81,6 +144,54 @@ const Index = () => {
     
     setTransactions(prev => [newTransaction, ...prev]);
   }, []);
+
+  const handleExportPDF = useCallback(() => {
+    try {
+      exportToPDF(sampleProjects, transactions, sampleConsultants, walletBalance);
+      
+      // Log the export as a transaction
+      handleAddTransaction({
+        description: "PDF Export Generated",
+        amount: 0,
+        type: "outgoing"
+      });
+      
+      toast({
+        title: "PDF Export Complete",
+        description: "Your data has been exported to PDF and the action has been logged.",
+      });
+    } catch (error) {
+      toast({
+        title: "Export Failed",
+        description: "There was an error generating the PDF.",
+        variant: "destructive",
+      });
+    }
+  }, [transactions, walletBalance, toast, handleAddTransaction]);
+
+  const handleExportCSV = useCallback(() => {
+    try {
+      exportToCSV(sampleProjects, transactions, sampleConsultants, walletBalance);
+      
+      // Log the export as a transaction
+      handleAddTransaction({
+        description: "CSV Export Generated",
+        amount: 0,
+        type: "outgoing"
+      });
+      
+      toast({
+        title: "CSV Export Complete",
+        description: "Your data has been exported to CSV and the action has been logged.",
+      });
+    } catch (error) {
+      toast({
+        title: "Export Failed",
+        description: "There was an error generating the CSV.",
+        variant: "destructive",
+      });
+    }
+  }, [transactions, walletBalance, toast, handleAddTransaction]);
 
   const renderContent = () => {
     switch (activeNav) {
@@ -112,7 +223,12 @@ const Index = () => {
 
   return (
     <main className="min-h-screen bg-background">
-      <DashboardHeader activeNav={activeNav} onNavChange={setActiveNav} />
+      <DashboardHeader 
+        activeNav={activeNav} 
+        onNavChange={setActiveNav}
+        onExportPDF={handleExportPDF}
+        onExportCSV={handleExportCSV}
+      />
       {renderContent()}
     </main>
   );
