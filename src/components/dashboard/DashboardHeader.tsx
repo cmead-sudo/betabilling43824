@@ -1,14 +1,28 @@
-import { Settings, Bell, User } from "lucide-react";
+import { Settings, Bell, User, FileDown, FileSpreadsheet } from "lucide-react";
 import pharmaloomLogo from "@/assets/pharmaloom-logo.png";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+  DropdownMenuSeparator,
+} from "@/components/ui/dropdown-menu";
 
 const navItems = ["Dashboard", "Projects", "Talent", "Wallet"];
 
 interface DashboardHeaderProps {
   activeNav?: string;
   onNavChange?: (item: string) => void;
+  onExportPDF?: () => void;
+  onExportCSV?: () => void;
 }
 
-export const DashboardHeader = ({ activeNav = "Dashboard", onNavChange }: DashboardHeaderProps) => {
+export const DashboardHeader = ({ 
+  activeNav = "Dashboard", 
+  onNavChange,
+  onExportPDF,
+  onExportCSV
+}: DashboardHeaderProps) => {
   return (
     <header className="flex items-center justify-between px-8 py-4">
       {/* Logo */}
@@ -32,6 +46,26 @@ export const DashboardHeader = ({ activeNav = "Dashboard", onNavChange }: Dashbo
 
       {/* Right Actions */}
       <div className="flex items-center gap-3">
+        {/* Export Dropdown */}
+        <DropdownMenu>
+          <DropdownMenuTrigger asChild>
+            <button className="w-11 h-11 rounded-full bg-card flex items-center justify-center shadow-soft hover:shadow-hover transition-all duration-300">
+              <FileDown className="w-5 h-5 text-muted-foreground" />
+            </button>
+          </DropdownMenuTrigger>
+          <DropdownMenuContent align="end" className="w-48">
+            <DropdownMenuItem onClick={onExportPDF} className="cursor-pointer">
+              <FileDown className="w-4 h-4 mr-2 text-red-500" />
+              Export to PDF
+            </DropdownMenuItem>
+            <DropdownMenuSeparator />
+            <DropdownMenuItem onClick={onExportCSV} className="cursor-pointer">
+              <FileSpreadsheet className="w-4 h-4 mr-2 text-green-500" />
+              Export to CSV
+            </DropdownMenuItem>
+          </DropdownMenuContent>
+        </DropdownMenu>
+
         <button className="w-11 h-11 rounded-full bg-card flex items-center justify-center shadow-soft hover:shadow-hover transition-all duration-300">
           <Settings className="w-5 h-5 text-muted-foreground" />
         </button>
