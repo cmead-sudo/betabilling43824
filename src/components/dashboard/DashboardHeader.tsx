@@ -27,8 +27,11 @@ export const DashboardHeader = ({
     <header className="flex items-center justify-between px-8 py-4">
       {/* Logo */}
       <div className="flex items-center gap-3">
-        <img src={pharmaloomLogo} alt="Pharmaloom" className="h-10 w-auto" />
-        <span className="text-xl font-bold text-primary tracking-tight">Pharmaloom</span>
+        <img src={pharmaloomLogo} alt="PharmaLoom" className="h-10 w-auto" />
+        <div className="flex flex-col">
+          <span className="text-xl font-bold text-primary tracking-tight">Fabric<sup className="text-xs">©</sup></span>
+          <span className="text-[10px] text-muted-foreground -mt-1">by PharmaLoom™</span>
+        </div>
       </div>
 
       {/* Pill Navigation */}
